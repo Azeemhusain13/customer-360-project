@@ -1,10 +1,57 @@
 import streamlit as st
 import pandas as pd
 from sqlalchemy import create_engine
+import sqlite3
 
 # ---------------- DB CONNECTION ----------------
-# Update with your DB credentials
-engine = create_engine("sqlite:///customer360.db")
+engine = create_engine("sqlite:///customer360.db", connect_args={"check_same_thread": False})
+
+# ---------------- INIT DATABASE ----------------
+def init_db():
+    conn = sqlite3.connect("customer360.db")
+    cursor = conn.cursor()
+
+    # Create tables
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS customers (
+        customer_id INTEGER PRIMARY KEY,
+        name TEXT,
+        country TEXT
+    )
+    """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS transactions (
+        transaction_id INTEGER PRIMARY KEY,
+        customer_id INTEGER,
+        amount REAL,
+        FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+    )
+    """)
+
+    # Insert sample data (only if empty)
+    cursor.execute("SELECT COUNT(*) FROM customers")
+    if cursor.fetchone()[0] == 0:
+        cursor.executemany("INSERT INTO customers VALUES (?, ?, ?)", [
+            (1, "Aman", "India"),
+            (2, "Sara", "UK"),
+            (3, "John", "USA")
+        ])
+
+    cursor.execute("SELECT COUNT(*) FROM transactions")
+    if cursor.fetchone()[0] == 0:
+        cursor.executemany("INSERT INTO transactions VALUES (?, ?, ?)", [
+            (101, 1, 500),
+            (102, 1, 700),
+            (103, 2, 300),
+            (104, 3, 1000)
+        ])
+
+    conn.commit()
+    conn.close()
+
+# Run DB init
+init_db()
 
 # ---------------- LOAD DATA ----------------
 @st.cache_data
@@ -17,12 +64,17 @@ def load_data():
         SUM(t.amount) AS total_spent,
         COUNT(t.transaction_id) AS frequency
     FROM customers c
-    JOIN transactions t ON c.customer_id = t.customer_id
+    LEFT JOIN transactions t ON c.customer_id = t.customer_id
     GROUP BY c.customer_id, c.name, c.country
     """
     return pd.read_sql(query, engine)
 
-df = load_data()
+# Safe load
+try:
+    df = load_data()
+except Exception as e:
+    st.error(f"Error loading data: {e}")
+    st.stop()
 
 # ---------------- TITLE ----------------
 st.title("🚀 Customer 360° Intelligence Dashboard")
@@ -40,18 +92,16 @@ col3.metric("Avg Spend", f"${df['total_spent'].mean():,.2f}")
 st.subheader("🎯 Customer Segmentation")
 
 def segment(row):
-    if row > 800:
+    if row and row > 800:
         return "High Value"
-    elif row > 400:
+    elif row and row > 400:
         return "Medium Value"
     else:
         return "Low Value"
 
-df["segment"] = df["total_spent"].apply(segment)
+df["segment"] = df["total_spent"].fillna(0).apply(segment)
 
-segment_counts = df["segment"].value_counts()
-
-st.bar_chart(segment_counts)
+st.bar_chart(df["segment"].value_counts())
 
 # ---------------- TOP CUSTOMERS ----------------
 st.subheader("🏆 Top Customers")
