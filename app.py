@@ -7,45 +7,78 @@ import sqlite3
 engine = create_engine("sqlite:///customer360.db", connect_args={"check_same_thread": False})
 
 # ---------------- INIT DATABASE ----------------
+import sqlite3
+
 def init_db():
     conn = sqlite3.connect("customer360.db")
     cursor = conn.cursor()
 
-    # Create tables
-    cursor.execute("""
+    cursor.executescript("""
+    -- CUSTOMERS
     CREATE TABLE IF NOT EXISTS customers (
         customer_id INTEGER PRIMARY KEY,
         name TEXT,
-        country TEXT
-    )
-    """)
+        email TEXT,
+        country TEXT,
+        age INTEGER,
+        gender TEXT,
+        signup_date DATE
+    );
 
-    cursor.execute("""
+    -- TRANSACTIONS
     CREATE TABLE IF NOT EXISTS transactions (
         transaction_id INTEGER PRIMARY KEY,
         customer_id INTEGER,
         amount REAL,
-        FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
-    )
+        transaction_date DATE
+    );
+
+    -- CAMPAIGNS
+    CREATE TABLE IF NOT EXISTS campaigns (
+        campaign_id INTEGER PRIMARY KEY,
+        campaign_name TEXT,
+        channel TEXT,
+        start_date DATE,
+        end_date DATE
+    );
+
+    -- INTERACTIONS
+    CREATE TABLE IF NOT EXISTS interactions (
+        interaction_id INTEGER PRIMARY KEY,
+        customer_id INTEGER,
+        campaign_id INTEGER,
+        interaction_type TEXT,
+        interaction_date DATE
+    );
+
+    INSERT OR IGNORE INTO customers VALUES
+    (1, 'Aman', 'aman@gmail.com', 'India', 25, 'Male', '2023-01-10'),
+    (2, 'Sara', 'sara@gmail.com', 'UK', 30, 'Female', '2023-02-15'),
+    (3, 'John', 'john@gmail.com', 'USA', 28, 'Male', '2023-03-20'),
+    (4, 'Priya', 'priya@gmail.com', 'India', 27, 'Female', '2023-04-12'),
+    (5, 'David', 'david@gmail.com', 'Germany', 35, 'Male', '2023-05-05');
+
+    INSERT OR IGNORE INTO transactions VALUES
+    (101, 1, 500, '2023-06-01'),
+    (102, 1, 700, '2023-07-01'),
+    (103, 2, 300, '2023-06-10'),
+    (104, 3, 1000, '2023-07-05'),
+    (105, 4, 450, '2023-07-10'),
+    (106, 5, 800, '2023-07-15');
+
+    INSERT OR IGNORE INTO campaigns VALUES
+    (201, 'Summer Sale', 'Email', '2023-06-01', '2023-06-30'),
+    (202, 'Festive Ads', 'Social', '2023-07-01', '2023-07-31'),
+    (203, 'Black Friday', 'Ads', '2023-11-01', '2023-11-30');
+
+    INSERT OR IGNORE INTO interactions VALUES
+    (301, 1, 201, 'click', '2023-06-02'),
+    (302, 1, 201, 'purchase', '2023-06-03'),
+    (303, 2, 202, 'open', '2023-07-02'),
+    (304, 3, 202, 'click', '2023-07-03'),
+    (305, 4, 203, 'purchase', '2023-11-10'),
+    (306, 5, 203, 'click', '2023-11-15');
     """)
-
-    # Insert sample data (only if empty)
-    cursor.execute("SELECT COUNT(*) FROM customers")
-    if cursor.fetchone()[0] == 0:
-        cursor.executemany("INSERT INTO customers VALUES (?, ?, ?)", [
-            (1, "Aman", "India"),
-            (2, "Sara", "UK"),
-            (3, "John", "USA")
-        ])
-
-    cursor.execute("SELECT COUNT(*) FROM transactions")
-    if cursor.fetchone()[0] == 0:
-        cursor.executemany("INSERT INTO transactions VALUES (?, ?, ?)", [
-            (101, 1, 500),
-            (102, 1, 700),
-            (103, 2, 300),
-            (104, 3, 1000)
-        ])
 
     conn.commit()
     conn.close()
