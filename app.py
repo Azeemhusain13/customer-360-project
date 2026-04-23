@@ -7,7 +7,6 @@ import sqlite3
 engine = create_engine("sqlite:///customer360.db", connect_args={"check_same_thread": False})
 
 # ---------------- INIT DATABASE ----------------
-import sqlite3
 
 def init_db():
     conn = sqlite3.connect("customer360.db")
