@@ -117,8 +117,15 @@ filtered_df = df[df["country"] == country]
 st.dataframe(filtered_df)
 
 # Download
-st.download_button(
-    "📥 Download Data",
-    filtered_df.to_csv(index=False),
-    "customer_data.csv"
-)
+# ---------------- DOWNLOAD (CENTERED) ----------------
+st.subheader("")
+
+col1, col2, col3 = st.columns([1, 2, 1])
+
+with col2:
+    st.download_button(
+        label="📥 Download Data",
+        data=filtered_df.to_csv(index=False),
+        file_name="customer_data.csv",
+        mime="text/csv"
+    )
